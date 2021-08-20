@@ -1,5 +1,5 @@
 local title = "Inventory" -- export: Name your display.
-local bgtext = "Cydonia V Mobile Surveyor Platform" -- export: Background text of your choice.
+local bgtext = "Medium Heavy Cargo Ship" -- export: Background text of your choice.
 local bgPlanetImg = "assets.prod.novaquark.com/20368/954f3adb-3369-4ea9-854d-a14606334152.png" -- export: (Default: Alioth URL)
 local pollRate = 0.06667 -- export: (Default: 0.066667) just a bit slower than the programming board to avoide duplicates.
 

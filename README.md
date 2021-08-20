@@ -1,7 +1,6 @@
 # DU-Ship-Inventory
 ## Dual Universe Ship Inventory Manager
 
-![Initial Screen](/images/1.png)
 This project leverages the recently released screen LUA APIs to provide an interface with the programming board.
 
 With this system, you can set up a visual representation of your container on your ship. Designed to use a hub.

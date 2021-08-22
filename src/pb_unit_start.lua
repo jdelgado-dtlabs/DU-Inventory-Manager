@@ -8,7 +8,7 @@ DEBUG = true
 -- global variables
 MaxVolume = 1150000 --export: (Default 1150000) Put the maximum volume of your containers in L. 1 kL = 1000 L
 DataStart = false
-
+SortByMass = false --export: (Default false) Sorts by Volume or Mass. 
 -- find my hubs
 local hublist = { hub1, hub2, hub3, hub4, hub5, hub6, hub7, hub8 }
 Hubs = {}
@@ -36,6 +36,17 @@ function maxForceForward ()
     end
 end
 
+function getKeysSortedByValue(tbl, sortFunction)
+    local keys = {}
+    for key in pairs(tbl) do
+        table.insert(keys, key)
+    end
+    table.sort(keys, function(a, b)
+        return sortFunction(tbl[a], tbl[b])
+    end)
+    return keys
+end
+
 function getItems (hub)
     local c = json.decode(hub.getItemsList())
     local out = {}
@@ -55,12 +66,36 @@ end
 
 function createMessageList (items, core)
     local t = {}
+    local unordered = {}
+    local sorting = {}
+    local sorted = {}
     if DEBUG then system.print("Processed: "..rslib.toString(items)) end
     table.insert(t,1,"START")
     for h=1,#Hubs do
         for i,_ in ipairs(items[h]) do
-            table.insert(t, i+1, items[h][i])
+            table.insert(unordered, items[h][i])
         end
+    end
+    for i,_ in ipairs(unordered) do
+        local qty = unordered[i]["qty"]
+        local unit = unordered[i]["unitv"]
+        if SortByMass then
+            unit = unordered[i]["unitm"]
+        end
+        local calc = qty*unit
+        table.insert(sorting, i, calc)
+    end
+    local sortedKeys = getKeysSortedByValue(sorting, function(a, b) return a > b end)
+    sorting = nil
+    local sortedIndex = 1
+    for _, key in ipairs(sortedKeys) do
+        local tt = unordered[key]
+        tt["id"] = sortedIndex
+        table.insert(sorted, sortedIndex, tt)
+        sortedIndex = sortedIndex+1
+    end
+    for i,_ in ipairs(sorted) do
+        table.insert(t, sorted[i])
     end
     table.insert(t, core)
     table.insert(t, "DONE")

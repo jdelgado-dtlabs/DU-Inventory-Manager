@@ -1,11 +1,10 @@
 local title = "Inventory" -- export: Name your display.
 local bgtext = "Medium Heavy Cargo Ship" -- export: Background text of your choice.
-local bgPlanetImg = "assets.prod.novaquark.com/20368/954f3adb-3369-4ea9-854d-a14606334152.png" -- export: (Default: Alioth URL)
-local pollRate = 0.06667 -- export: (Default: 0.066667) just a bit slower than the programming board to avoide duplicates.
-
-local fontCache = {}
+local pollRate = 0.066667 -- export: (Default: 0.066667) just a bit slower than the programming board to avoide duplicates.
 
 local rx, ry = getResolution()
+
+fontCache = {} -- on refresh, the fontcache is invalid. This resets it.
 
 local bglayer = createLayer()
 local statusLayer = createLayer()
@@ -18,59 +17,92 @@ click = getCursorPressed()
 local json = require('dkjson')
 local rslib = require('rslib')
 
-local baseFolder = "assets.prod.novaquark.com"
+local DEBUG = true
 
-local itemImages = {
-    Hematite = baseFolder.."/70186/4ff8e9b7-5ed8-4b62-9b02-219219081efa.png",
-    Bauxite = baseFolder.."/70186/2a660dc9-9af6-4f4b-87d3-bba4defb1964.png",
-    Coal = baseFolder.."/70186/edc9f97e-7359-454e-8ba9-8f960037ae9b.png",
-    Quartz = baseFolder.."/70186/a8d1c39e-d3d3-4a75-bce1-348036588108.png",
-    Natron = baseFolder.."/70186/cec7c516-9f70-4b2b-9d60-6f9527ae36a8.png",
-    Chromite = baseFolder.."/70186/b7357f8d-43ce-4279-a7d3-75fb6fda4fcd.png",
-    Limestone = baseFolder.."/70186/dc16bf83-bc00-42b3-8f71-1683e8350efb.png",
-    Malachite = baseFolder.."/45824/36e5a9ca-c9f6-4e66-b2f4-fe64c9289224.png",
-    Pyrite = baseFolder.."/70186/0423117d-8754-470c-873c-9b56bf3b9ae2.png",
-    Acanthite = baseFolder.."/70186/e5246f30-14b3-4bf8-bfc1-9bf20a40ed6e.png",
-    Garnierite = baseFolder.."/70186/b8a8443d-374d-4df2-b289-bfe69105a962.png",
-    Petalite = baseFolder.."/70186/3ce3c407-4cfc-4c90-9258-c7af0a5bcf97.png",
-    Cobaltite = baseFolder.."/70186/a1e3cbd0-c1c1-423d-abea-bf89fbbeb936.png",
-    Cryolite = baseFolder.."/70186/54c5acf2-7c0c-4154-b38c-ffe22d349b80.png",
-    Kolbeckite = baseFolder.."/70186/c4d32953-9bfb-4586-974d-de0a2ea0f954.png",
-    GoldNugget = baseFolder.."/70186/335baaee-7651-4b90-9e5a-290950ed0f5a.png",
-    Columbite = baseFolder.."/70186/891cbe02-e34c-4473-9cac-65ba67075e47.png",
-    Illmenite = baseFolder.."/70186/13f64ee1-4c8d-40bb-9eff-605e6e6e681f.png",
-    Rhodonite = baseFolder.."/70186/a2f5af65-de9e-4b49-a752-a47a42eca4e9.png",
-    Vanadinite = baseFolder.."/70186/34804219-fcbb-4900-9358-77688ef535fe.png",
-    WarpCell = "resources_generated/elementsLib/fuel-parts/fuel-part-warp-cells_001/icons/env_fuel-part-warp-cells_001_icon.png",
-    KergonX1Fuel = "resources_generated/iconsLib/materialslib/Kergon.png",
-    KergonX2Fuel = "resources_generated/iconsLib/materialslib/Kergon.png",
-    KergonX3Fuel = "resources_generated/iconsLib/materialslib/Kergon.png",
-    KergonX4Fuel = "resources_generated/iconsLib/materialslib/Kergon.png",
-    NitronFuel = "resources_generated/iconsLib/materialslib/Nitron.png",
-    TerritoryScanner = "resources_generated/iconsLib/elementslib/territoryscanner.png",
-    TerritoryUnit = "assets.prod.novaquark.com/70186/dd5105d3-e139-4d4c-8472-a476dea5801d.png",
-    IronScrap = "resources_generated/elementsLib/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
-    AluminiumScrap = "resources_generated/elementsLib/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
-    CarbonScrap = "resources_generated/elementsLib/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
-    SiliconScrap = "resources_generated/elementsLib/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
-    SodiumScrap = "resources_generated/elementsLib/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
-    CopperScrap = "resources_generated/elementsLib/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
-    CalciumScrap = "resources_generated/elementsLib/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
-    ChromiumScrap = "resources_generated/elementsLib/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
-    SulfurScrap = "resources_generated/elementsLib/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
-    LithiumScrap = "resources_generated/elementsLib/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
-    NickelScrap = "resources_generated/elementsLib/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
-    SilverScrap = "resources_generated/elementsLib/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
-    CobaltScrap = "resources_generated/elementsLib/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
-    ScandiumScrap = "resources_generated/elementsLib/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
-    FlourineScrap = "resources_generated/elementsLib/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
-    GoldScrap = "resources_generated/elementsLib/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
-    Scannerresult = "assets.prod.novaquark.com/76470/95f99200-eccc-4424-b575-7c9b9a051ac2.png"
-}
-
-local mt = {__index = function () return "none" end}
-setmetatable(itemImages, mt)
-mt = nil
+if not ImageLibrary then
+    local baseURI = "assets.prod.novaquark.com"
+    local baseElem = "resources_generated/elementsLib"
+    local baseIcon = "resources_generated/iconsLib"
+    local mt = {__index = function () return "none" end}
+    ImageLibrary = {
+        Alioth = baseURI.."/20368/954f3adb-3369-4ea9-854d-a14606334152.png",
+        AliothMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        AliothMoon4 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Sanctuary = baseURI.."/20368/1a70dbff-24bc-44cb-905c-6d375d9613b8.png",
+        Feli = baseURI.."/20368/da91066c-b3fd-41f4-8c01-26131b0a7841.png",
+        FeliMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Ion = baseURI.."/20368/91d10712-dc51-4b73-9fc0-6f07d96605a6.png",
+        IonMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        IonMoon2 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Jago = baseURI.."/20368/7fca8389-6b70-4198-a9c3-4875d15edb38.png",
+        Lacobus = baseURI.."/20368/cb67a6a4-933c-4688-a637-898c89eb5b94.png",
+        LacobusMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        LacobusMoon2 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        LacobusMoon3 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Madis = baseURI.."/20368/46d57ef4-40ee-46ca-8cc5-5aee1504bbfe.png",
+        MadisMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        MadisMoon2 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        MadisMoon3 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Sicari = baseURI.."/20368/f6e2f801-075f-4ccd-ab94-46d060517e8f.png",
+        Sinnen = baseURI.."/20368/54a99084-7c2b-461b-ab1f-ae4229b3b821.png",
+        SinnenMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Symeon = baseURI.."/20368/97940324-f194-4e03-808d-d71733ad545a.png",
+        Talemai = baseURI.."/20368/f68628d9-3245-4d76-968e-ad9c63a19c19.png",
+        TalemaiMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        TalemaiMoon2 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        TalemaiMoon3 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Teoma = baseURI.."/20368/5a01dd8c-3cf8-4151-99a2-83b22f1e7249.png",
+        Thades = baseURI.."/20368/59f997a2-bcca-45cf-aa35-26e0e41ed5c1.png",
+        ThadesMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        ThadesMoon2 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
+        Hematite = baseURI.."/70186/4ff8e9b7-5ed8-4b62-9b02-219219081efa.png",
+        Bauxite = baseURI.."/70186/2a660dc9-9af6-4f4b-87d3-bba4defb1964.png",
+        Coal = baseURI.."/70186/edc9f97e-7359-454e-8ba9-8f960037ae9b.png",
+        Quartz = baseURI.."/70186/a8d1c39e-d3d3-4a75-bce1-348036588108.png",
+        Natron = baseURI.."/70186/cec7c516-9f70-4b2b-9d60-6f9527ae36a8.png",
+        Chromite = baseURI.."/70186/b7357f8d-43ce-4279-a7d3-75fb6fda4fcd.png",
+        Limestone = baseURI.."/70186/dc16bf83-bc00-42b3-8f71-1683e8350efb.png",
+        Malachite = baseURI.."/45824/36e5a9ca-c9f6-4e66-b2f4-fe64c9289224.png",
+        Pyrite = baseURI.."/70186/0423117d-8754-470c-873c-9b56bf3b9ae2.png",
+        Acanthite = baseURI.."/70186/e5246f30-14b3-4bf8-bfc1-9bf20a40ed6e.png",
+        Garnierite = baseURI.."/70186/b8a8443d-374d-4df2-b289-bfe69105a962.png",
+        Petalite = baseURI.."/70186/3ce3c407-4cfc-4c90-9258-c7af0a5bcf97.png",
+        Cobaltite = baseURI.."/70186/a1e3cbd0-c1c1-423d-abea-bf89fbbeb936.png",
+        Cryolite = baseURI.."/70186/54c5acf2-7c0c-4154-b38c-ffe22d349b80.png",
+        Kolbeckite = baseURI.."/70186/c4d32953-9bfb-4586-974d-de0a2ea0f954.png",
+        GoldNugget = baseURI.."/70186/335baaee-7651-4b90-9e5a-290950ed0f5a.png",
+        Columbite = baseURI.."/70186/891cbe02-e34c-4473-9cac-65ba67075e47.png",
+        Illmenite = baseURI.."/70186/13f64ee1-4c8d-40bb-9eff-605e6e6e681f.png",
+        Rhodonite = baseURI.."/70186/a2f5af65-de9e-4b49-a752-a47a42eca4e9.png",
+        Vanadinite = baseURI.."/70186/34804219-fcbb-4900-9358-77688ef535fe.png",
+        WarpCell = baseElem.."/fuel-parts/fuel-part-warp-cells_001/icons/env_fuel-part-warp-cells_001_icon.png",
+        KergonX1Fuel = baseIcon.."/materialslib/Kergon.png",
+        KergonX2Fuel = baseIcon.."/materialslib/Kergon.png",
+        KergonX3Fuel = baseIcon.."/materialslib/Kergon.png",
+        KergonX4Fuel = baseIcon.."/materialslib/Kergon.png",
+        NitronFuel = baseIcon.."/materialslib/Nitron.png",
+        TerritoryScanner = baseIcon.."/elementslib/territoryscanner.png",
+        TerritoryUnit = baseURI.."/70186/dd5105d3-e139-4d4c-8472-a476dea5801d.png",
+        IronScrap = baseElem.."/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
+        AluminiumScrap = baseElem.."/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
+        CarbonScrap = baseElem.."/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
+        SiliconScrap = baseElem.."/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
+        SodiumScrap = baseElem.."/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
+        CopperScrap = baseElem.."/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
+        CalciumScrap = baseElem.."/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
+        ChromiumScrap = baseElem.."/scraps/scrap-t2_001/icons/scrap-t2_001_icon.png",
+        SulfurScrap = baseElem.."/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
+        LithiumScrap = baseElem.."/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
+        NickelScrap = baseElem.."/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
+        SilverScrap = baseElem.."/scraps/scrap-t3_001/icons/scrap-t3_001_icon.png",
+        CobaltScrap = baseElem.."/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
+        ScandiumScrap = baseElem.."/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
+        FlourineScrap = baseElem.."/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
+        GoldScrap = baseElem.."/scraps/scrap-t4_001/icons/scrap-t4_001_icon.png",
+        Scannerresult = baseURI.."/76470/95f99200-eccc-4424-b575-7c9b9a051ac2.png"
+    }
+    setmetatable(ImageLibrary, mt)
+end
 
 function unitCollapse (value, baseUnit)
     local u = ""
@@ -132,16 +164,19 @@ function drawBackground ()
     end
 end
 
-function drawBackgroundImage (cols)
+function drawBackgroundImage (cols, bgImage)
     if cols and cols ~= "noC" then
-        local cenImage = loadImage(bgPlanetImg)
-        if isImageLoaded(cenImage) then
-            setNextFillColor(bglayer, 1, 1, 1, .33)
-            addImage(bglayer, cenImage, (rx/2) - (ry/6), ry/3, ry/3, ry/3)
+        local imageName = ImageLibrary[bgImage]
+        if imageName then
+            local cenImage = loadImage(imageName)
+            if isImageLoaded(cenImage) then
+                setNextFillColor(bglayer, 1, 1, 1, .33)
+                addImage(bglayer, cenImage, (rx/2) - (ry/6), ry/3, ry/3, ry/3)
+            end
         end
     end
     if cols and cols ~= "noSCs" then
-        local colImage = loadImage(itemImages["TerritoryScanner"])
+        local colImage = loadImage(ImageLibrary["TerritoryScanner"])
         if isImageLoaded(colImage) then
             setNextFillColor(bglayer, 1, 1, 1, .33)
             addImage(bglayer, colImage, -5, ry/3, ry/3, ry/3)
@@ -312,13 +347,13 @@ function itemBox(items, indexStart, column, row, starty, square, padding)
                 setNextStrokeColor(itemLayer, r, g, b, 1)
                 setNextFillColor(itemLayer, 0, 0, 0, 0)
                 addBox(itemLayer, colStart, rowStart, square, square)
-                if itemImages[name] ~= "none" then
-                    local image = loadImage(itemImages[name])
+                if ImageLibrary[name] ~= "none" then
+                    local image = loadImage(ImageLibrary[name])
                     if isImageLoaded(image) then
                         addImage(itemLayer, image, colStart, rowStart, square, square)
                     end
                 else
-                   noIcon(colStart, rowStart, square)
+                noIcon(colStart, rowStart, square)
                 end
                 index = index+1
             else
@@ -378,7 +413,7 @@ function displayItem (item, core)
     setNextStrokeColor(itemLayer, 0, 1, 1, 1)
     setNextFillColor(itemLayer, 0, 0, 0, 0)
     addBox(itemLayer, startx, starty, square, square)
-    local image = itemImages[item["image"]]
+    local image = ImageLibrary[item["image"]]
     if image == "none" then
         noIcon(startx, starty, square)
     else
@@ -468,7 +503,7 @@ function massStatus (core)
     end
     local lastsize = 0
     for i=1,#textsize do
-        if lastsize < textsize[i] then lastsize = textsize[i] end
+        lastsize = math.max(lastsize, textsize[i])
     end
     local seg = math.floor(#text/2)
     startx = (rx/2)-(seg*(lastsize/2))-(seg*5)
@@ -547,7 +582,7 @@ end
 function closedContainer (error)
     drawBackground()
     drawTitle()
-    drawBackgroundImage("noT")
+    drawBackgroundImage("noT", "Alioth")
     local font = getFont('Play-Bold', 32)
     local text = ""
     local r, g, b = 1, 1, 1
@@ -578,23 +613,28 @@ function closedContainer (error)
 end
 
 function pollData ()
+    
     if not Waiting then
+        local function sendAck (ack)
+            setOutput(ack)
+            logMessage(ack.." sent.")
+        end
         local input = getInput()
         local jData = json.decode(input)
         logMessage("input Received: "..rslib.toString(input).." Type: "..type(input))
         logMessage("Json Received: "..rslib.toString(jData).." Type: "..type(jData))
         if jData == "READY" then
-            sendAck()
+            sendAck("ACK")
             Waiting = true
         elseif jData == "SYN" then
-                setOutput("ACKSYN")
+                sendAck("ACKSYN")
                 logMessage("ACKSYN sent.")
                 Waiting = true
         else
             if type(jData) == "string" or type(jData) == "table" then
-                processData(jData)
+                if not processData(jData) then sendAck("RESET") end
             end
-            sendAck()
+            sendAck("ACK")
             Waiting = true
         end
     else
@@ -621,12 +661,15 @@ function processData (data)
     elseif type(data) == "table" then
         if data["name"] == "ship" then
             Ship = {}
+            data["pl"] = string.gsub(string.gsub(data["pl"], "%s+", ""), "-", "")
             Ship = data
         elseif data["name"] == "land" then
             Land = {}
+            data["pl"] = string.gsub(string.gsub(data["pl"], "%s+", ""), "-", "")
             Land = data
         elseif data["name"] == "space" then
             Space = {}
+            data["pl"] = string.gsub(string.gsub(data["pl"], "%s+", ""), "-", "")
             Space = data
         else
             if data["id"] then
@@ -634,18 +677,27 @@ function processData (data)
                     NextItems = {}
                 end
                 local index = data["id"]
-                data["image"] = string.gsub(data["name"], "%s+", "")
-                data["image"] = string.gsub(data["image"], "-", "")
+                local check = NextItems[index] or false
+                local check2 = (#NextItems ~= index-1) or false
+                if check or check2 then
+                    NextItems = false
+                    return false
+                end
+                data["image"] = string.gsub(string.gsub(data["name"], "%s+", ""), "-", "")
                 table.insert(NextItems, index, data)    
             end
         end
     end
     data = nil -- Garbage collection
+    return true
 end
 
-function sendAck ()
-    setOutput("ACK")
-    logMessage("ACK sent.")
+-- render cost profiler 
+if DEBUG then 
+    local layer = createLayer() 
+    local font = loadFont('Play-Bold', 14) 
+    setNextFillColor(layer, 1, 1, 1, 1) 
+    addText(layer, font, string.format('render cost : %d / %d',  getRenderCost(), getRenderCostMax()), 8, 16) 
 end
 
 function main ()
@@ -656,18 +708,18 @@ function main ()
     drawBackground()
     drawTitle()
     if itemDisplay then
-        drawBackgroundImage("noT")
+        drawBackgroundImage("noT", core["pl"])
         displayItem(itemDisplay, core)
     else
-        drawBackgroundImage("allC")
+        drawBackgroundImage("allC", core["pl"])
         itemPages(Items)
     end
     massStatus(core)
-    drawCursor()
 end
 
 if not Startup then
     if not Init then
+        Init = true
         logMessage(" -- --- --")
     end
     if not LastTime then
@@ -697,4 +749,6 @@ if Startup then
         refreshButton()
     end
 end
+
+drawCursor()
 requestAnimationFrame(5)

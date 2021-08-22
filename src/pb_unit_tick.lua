@@ -8,7 +8,11 @@ if not StorageReady then
     end
     StorageReady = pass
 else
-    if not MsgList then
+    if not DataStart then
+        --if DEBUG then system.print("DataStart = false") end
+        waitForAck()
+    else
+        if not MsgList then
         local items, core = {}, {}
         for i, _ in ipairs(Hubs) do
             local item = getItems(Hubs[i]["hub"])
@@ -25,14 +29,11 @@ else
         DataStart = false
         sendOutput("READY")
     else
-        if not DataStart then
-            if DEBUG then system.print("DataStart = false") end
-            waitForAck()
-        else
-            if ACK then
-                if DEBUG then system.print("ACK = true") end
+        if ACK then
+            if DEBUG then system.print("ACK = true") end
                 ACK = false
                 MsgList = processOutput(MsgList)
+                if not MsgList then DataStart = false end
             else
                 if DEBUG then system.print("ACK = false") end
                 waitForAck()

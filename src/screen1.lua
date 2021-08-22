@@ -1,6 +1,7 @@
 local title = "Inventory" -- export: Name your display.
 local bgtext = "Medium Heavy Cargo Ship" -- export: Background text of your choice.
 local pollRate = 0.066667 -- export: (Default: 0.066667) just a bit slower than the programming board to avoide duplicates.
+local refresh = 10 -- export: (Default: 10) Num of Sec to perform refresh of data.
 
 local rx, ry = getResolution()
 
@@ -17,7 +18,7 @@ click = getCursorPressed()
 local json = require('dkjson')
 local rslib = require('rslib')
 
-local DEBUG = true
+local DEBUG = false
 
 if not ImageLibrary then
     local baseURI = "assets.prod.novaquark.com"
@@ -25,6 +26,7 @@ if not ImageLibrary then
     local baseIcon = "resources_generated/iconsLib"
     local mt = {__index = function () return "none" end}
     ImageLibrary = {
+        Helios = baseURI.."/20368/0936494e-9b3d-4d60-9ea0-d93a3f3e29cd.png",
         Alioth = baseURI.."/20368/954f3adb-3369-4ea9-854d-a14606334152.png",
         AliothMoon1 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
         AliothMoon4 = baseURI.."/20368/f410e727-9d4d-4eab-98bf-22994b3fbdcf.png",
@@ -225,39 +227,6 @@ function noIcon (startx, starty, square)
     addText(itemLayer, font, "Icon", startx + (square/2) - (sx/2), starty + ((square/3)*2) - (sy/2))
     sx, sy = getTextBounds(font, "Available")
     addText(itemLayer, font, "Available", startx + (square/2) - (sx/2), starty + square - (sy/2))
-end
-
-function refreshButton ()
-    local text = "Refresh"
-    local font = getFont('Play-Bold', 18)
-    local sx, sy = getTextBounds(font, text)
-    sx, sy = sx + 24, sy + 12
-    local x0 = sx
-    local y0 = sy
-    local x1 = x0 + sx
-    local y1 = y0 + sy
-    local r, g, b = 0.3, 0.7, 1.0
-    if cx >= x0 and cx <= x1 and cy >= y0 and cy <= y1 then
-        r, g, b = 1.0, 0.0, 0.4
-        if click then
-            DataReceived = false
-            Items = false
-            Ship = false
-            Land = false
-            Space = false
-            RotDeg = 0
-            setOutput("START")
-            Waiting = true
-        end
-    end
-    setNextShadow(itemLayer, 64, r, g, b, 0.3)
-    setNextFillColor(itemLayer, 0.1, 0.1, 0.1, 1)
-    setNextStrokeColor(itemLayer, r, g, b, 1)
-    setNextStrokeWidth(itemLayer, 2)
-    addBoxRounded(itemLayer, x0, y0, sx, sy, 4)
-    setNextFillColor(itemLayer, 1, 1, 1, 1)
-    setNextTextAlign(itemLayer, AlignH_Center, AlignV_Middle)
-    addText(itemLayer, font, text, x0+(sx/2), y0+(sy/2))
 end
 
 function pageButtons (pages)
@@ -654,23 +623,21 @@ end
 function processData (data)
     logMessage("Processing: "..rslib.toString(data))
     if data == "DONE" then
-        Items = {}
-        Items = NextItems
-        NextItems = {}
+        if NewShip then Ship = NewShip; NewShip = false end
+        if NewLand then Land = NewLand; NewLand = false end
+        if NewSpace then Space = NewSpace; NewSpace = false end
+        if NextItems then Items = NextItems; NextItems = false end
         DataReceived = true
     elseif type(data) == "table" then
         if data["name"] == "ship" then
-            Ship = {}
             data["pl"] = string.gsub(string.gsub(data["pl"], "%s+", ""), "-", "")
-            Ship = data
+            NewShip = data
         elseif data["name"] == "land" then
-            Land = {}
             data["pl"] = string.gsub(string.gsub(data["pl"], "%s+", ""), "-", "")
-            Land = data
+            NewLand = data
         elseif data["name"] == "space" then
-            Space = {}
             data["pl"] = string.gsub(string.gsub(data["pl"], "%s+", ""), "-", "")
-            Space = data
+            NewSpace = data
         else
             if data["id"] then
                 if not NextItems then
@@ -684,11 +651,10 @@ function processData (data)
                     return false
                 end
                 data["image"] = string.gsub(string.gsub(data["name"], "%s+", ""), "-", "")
-                table.insert(NextItems, index, data)    
+                table.insert(NextItems, index, data)
             end
         end
     end
-    data = nil -- Garbage collection
     return true
 end
 
@@ -719,34 +685,50 @@ end
 
 if not Startup then
     if not Init then
-        Init = true
         logMessage(" -- --- --")
+        closedContainer("startup")
+        if not LastTime then
+            LastTime = getDeltaTime()
+        end
+        LastTime = LastTime+getDeltaTime()
+        if LastTime >= 3 then
+            Init = true
+            LastTime = false
+            DataReceived = false
+            setOutput("START")
+            logMessage("Startup Complete.")
+        end
+    else
+        if not Items and not (Ship or Land or Space) then
+            pollData()
+            closedContainer("polling")
+        else
+            Startup = true
+        end
     end
-    if not LastTime then
-        LastTime = getDeltaTime()
-    end
-    LastTime = LastTime+getDeltaTime()
-    if LastTime >= 3 then
-        Startup = true
-        LastTime = false
-        DataReceived = false
-        setOutput("START")
-        logMessage("Startup Complete.")
-    end
-    closedContainer("startup")
 end
 
+
 if Startup then
+    if not Items and not (Ship or Land or Space) then
+        closedContainer("noData")
+    else
+        main()
+    end
     if not DataReceived then
         pollData()
-        closedContainer("polling")
     else
-        if Items and (Ship or Land or Space) then
-            main()
-        else
-            closedContainer("noData")
+        if not RefreshTime then
+            RefreshTime = getDeltaTime()
         end
-        refreshButton()
+        RefreshTime = RefreshTime+getDeltaTime()
+        if RefreshTime >= refresh then
+            RefreshTime = false
+            DataReceived = false
+            setOutput("START")
+            Waiting = true
+            logMessage("Startup Complete.")
+        end
     end
 end
 

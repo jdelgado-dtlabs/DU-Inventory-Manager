@@ -455,6 +455,7 @@ function massStatus (core)
         if g > 0.1 then
             reqTh = cMass * g
             mMass = maxTh / g
+            table.remove(text, 4)
             table.insert(text, 4, "Max Mass: "..unitCollapse(mMass, "kg"))
             table.insert(text, 5, "Req Thrust: "..unitCollapse(reqTh, "N"))
             table.insert(text, 6, "Max Thrust: "..unitCollapse(maxTh, "N"))
@@ -470,7 +471,7 @@ function massStatus (core)
         if lastsize < textsize[i] then lastsize = textsize[i] end
     end
     local seg = math.floor(#text/2)
-    startx = (rx/2)-(seg*(lastsize/2))-(seg*10)
+    startx = (rx/2)-(seg*(lastsize/2))-(seg*5)
     for i,v in ipairs(text) do
         local l = 0
         if i%2 == 0 then
@@ -478,7 +479,7 @@ function massStatus (core)
         end
         addText(statusLayer, font, text[i], startx, starty + (l * 18))
         if i%2 == 0 then
-            startx = startx+lastsize+20
+            startx = startx+lastsize+10
         end
     end
 
@@ -560,7 +561,7 @@ function closedContainer (error)
         r, g, b = 1, 0, 0
     elseif error == "polling" then
         --logMessage("polling")
-        text = "Starting Up. Standby."
+        text = "Requesting data. Standby."
         r, g, b = 0, 1, 1
         waitAnim()
     elseif error == "startup" then

@@ -16,6 +16,7 @@ local cx, cy = getCursor()
 click = getCursorPressed()
 
 local json = require('dkjson')
+local rslib = require('rslib')
 
 local baseFolder = "assets.prod.novaquark.com"
 
@@ -100,18 +101,6 @@ function unitCollapse (value, baseUnit)
         return string.format("%.2f", m).." "..uv[uvi]..u
     end
     return string.format("%.2f", m).." "..u
-end
-
-function prettyStr (x)
-    if type(x) == 'table' then
-        local elems = {}
-        for k, v in pairs(x) do
-            table.insert(elems, string.format('%s = %s', prettyStr(k), prettyStr(v)))
-        end
-        return string.format('{%s}', table.concat(elems, ', '))
-    else
-        return tostring(x)
-    end
 end
 
 function getFont (font, size)
@@ -216,10 +205,14 @@ function refreshButton ()
     if cx >= x0 and cx <= x1 and cy >= y0 and cy <= y1 then
         r, g, b = 1.0, 0.0, 0.4
         if click then
-            Polling = true
+            DataReceived = false
             Items = false
             Ship = false
+            Land = false
+            Space = false
             RotDeg = 0
+            setOutput("START")
+            Waiting = true
         end
     end
     setNextShadow(itemLayer, 64, r, g, b, 0.3)
@@ -273,7 +266,7 @@ function pageButtons (pages)
 end
 
 function itemPages (items)
-    local startx = rx/6
+
     local starty = ry/6
     local square = (ry/6)-5
     local padding = 5
@@ -289,14 +282,14 @@ function itemPages (items)
     end
     if pages > 1 then
         indexStart = (PageView-1)*(column*row)+1
-        itemBox(items, indexStart, column, row, startx, starty, square, padding)
+        itemBox(items, indexStart, column, row, starty, square, padding)
         pageButtons(pages)
     else
-        itemBox(items, indexStart, column, row, startx, starty, square, padding)
+        itemBox(items, indexStart, column, row, starty, square, padding)
     end
 end
 
-function itemBox(items, indexStart, column, row, startx, starty, square, padding)
+function itemBox(items, indexStart, column, row, starty, square, padding)
     local index = indexStart
     for r=1,row do
         for c=1,column do
@@ -305,7 +298,7 @@ function itemBox(items, indexStart, column, row, startx, starty, square, padding
                 local name = item["image"]
                 local boxSize = square+padding
                 local centeredx = rx/2-(boxSize*(column/2))
-                local colStart = centeredx+padding+((c-1)*boxSize)
+                local colStart = centeredx-padding+((c-1)*boxSize)
                 local rowStart = starty+padding+((r-1)*boxSize)
                 local r, g, b = 0, 1, 1
                 if cx >= colStart and cx <= colStart + square and cy >= rowStart and cy <= rowStart + square then
@@ -363,7 +356,7 @@ function backButton ()
     addText(itemLayer, font, text, startx, starty)
 end
 
-function displayItem (item, ship)
+function displayItem (item, core)
     local startx = rx/5
     local starty = ry/6 + 15
     local square = ry/5
@@ -375,11 +368,12 @@ function displayItem (item, ship)
     local qty = item["qty"]
     local itemVol = unitv * qty
     local itemMass = unitm * qty
-    local maxMass = ship["maxth"] / ship["g"]
-    local volpct = itemVol / ship["maxv"]
-    local masspct = itemMass / maxMass
+    local maxMass = nil
+    local masspct = nil
+    local volpct = itemVol / core["hmaxvol"]
     local title = getFont("Play-Bold", 36)
     local subtitle = getFont("Play-Bold", 18)
+
     setNextStrokeWidth(itemLayer, 1)
     setNextStrokeColor(itemLayer, 0, 1, 1, 1)
     setNextFillColor(itemLayer, 0, 0, 0, 0)
@@ -408,51 +402,75 @@ function displayItem (item, ship)
     addBox(itemLayer, pgBarStartX, pgBarStartY, pgBarEnd , 10)
     setNextFillColor(itemLayer, r, g, b, 1)
     addBox(itemLayer, pgBarStartX, pgBarStartY, pgBarEnd * volpct , 10)
-    addText(itemLayer, subtitle, "Mass", pgBarStartX,pgBarStartY + 28 )
-    r, g, b = 0, 1, 0
-    if masspct > 0.75 then
-        r, g, b = 1, 0, 0
-    elseif masspct > 0.5 then
-        r, g, b = 1, 1, 0
+    if (core["name"] =="ship" or core["name"] =="space") and core["g"] > 0 then
+        maxMass = core["maxth"] / core["g"]
+        masspct = itemMass / maxMass
+        addText(itemLayer, subtitle, "Mass", pgBarStartX,pgBarStartY + 28 )
+        r, g, b = 0, 1, 0
+        if masspct > 0.75 then
+            r, g, b = 1, 0, 0
+        elseif masspct > 0.5 then
+            r, g, b = 1, 1, 0
+        end
+        setNextStrokeWidth(itemLayer, 1)
+        setNextStrokeColor(itemLayer, r, g, b, 1)
+        setNextFillColor(itemLayer, 0, 0, 0, 0)
+        addBox(itemLayer, pgBarStartX, pgBarStartY+20+ 18, pgBarEnd , 10)
+        setNextFillColor(itemLayer, r, g, b, 1)
+        addBox(itemLayer, pgBarStartX, pgBarStartY+20+ 18, pgBarEnd * masspct , 10)
     end
-    setNextStrokeWidth(itemLayer, 1)
-    setNextStrokeColor(itemLayer, r, g, b, 1)
-    setNextFillColor(itemLayer, 0, 0, 0, 0)
-    addBox(itemLayer, pgBarStartX, pgBarStartY+20+ 18, pgBarEnd , 10)
-    setNextFillColor(itemLayer, r, g, b, 1)
-    addBox(itemLayer, pgBarStartX, pgBarStartY+20+ 18, pgBarEnd * masspct , 10)
+    
     addText(itemLayer, subtitle, "Current Qty: "..string.format("%.2f", qty), pgBarStartX, pgBarStartY+32+18+18)
     addText(itemLayer, subtitle, "Current Volume: "..unitCollapse(itemVol, "L"), pgBarStartX, pgBarStartY+32+18+18+18)
     addText(itemLayer, subtitle, "Current Mass: "..unitCollapse(itemMass, "kg"), pgBarStartX, pgBarStartY+32+36+18+18)
     backButton()
 end
 
-function shipMassStatus (ship)
-    local startx = (rx/6) + 5
-
+function massStatus (core)
+    local startx = 0
     local starty = (ry/6) * 4.5
     local font = getFont("Play", 18)
-    local text = {}
-    local currMass = ship["shipm"]
-    local contVol = ship["contv"]
-    local shipMaxVol = ship["maxv"]
-    local maxThrust = ship["maxth"]
-    local grav = ship["g"]
-    local reqThrust = 0
-    local maxMass = 0
+    local cMass = core["mass"]
+    local mMass = nil
+    local hVol = core["hvol"]
+    local maxVol = core["hmaxvol"]
+    local reqTh = nil
+    local maxTh = nil
+    local g = nil
 
-
-    if grav > 0.1 then
-        reqThrust = currMass * grav
-        maxMass = maxThrust / grav
-    end
-    text = { "Current Mass: "..unitCollapse(currMass, "kg"),
-        "Max Mass: "..unitCollapse(maxMass, "kg"),
-        "Current Volume: "..unitCollapse(contVol, "L"),
-        "Max Volume: "..unitCollapse(shipMaxVol, "L"),
-        "Req Thrust: "..unitCollapse(reqThrust, "N"),
-        "Max Thrust: "..unitCollapse(maxThrust, "N")
+    local text = {
+        "Current Volume: "..unitCollapse(hVol, "L"),
+        "Max Volume: "..unitCollapse(maxVol, "L")
     }
+
+    if core["name"] == "ship" or core["name"] == "space" then
+        g = core["g"]
+        table.insert(text, "Current Mass: "..unitCollapse(cMass, "kg"))
+        table.insert(text, 4, "Current Gravity: "..core["g"].."g")
+    end
+
+    if core["name"] == "ship" then
+        maxTh = core["maxth"]
+        g = core["g"]
+        if g > 0.1 then
+            reqTh = cMass * g
+            mMass = maxTh / g
+            table.insert(text, 4, "Max Mass: "..unitCollapse(mMass, "kg"))
+            table.insert(text, 5, "Req Thrust: "..unitCollapse(reqTh, "N"))
+            table.insert(text, 6, "Max Thrust: "..unitCollapse(maxTh, "N"))
+        end
+    end
+    local textsize = {}
+    for i=1,#text do
+        local sx, _ = getTextBounds(font, text[i])
+        table.insert(textsize, i, sx)
+    end
+    local lastsize = 0
+    for i=1,#textsize do
+        if lastsize < textsize[i] then lastsize = textsize[i] end
+    end
+    local seg = math.floor(#text/2)
+    startx = (rx/2)-(seg*(lastsize/2))-(seg*10)
     for i,v in ipairs(text) do
         local l = 0
         if i%2 == 0 then
@@ -460,14 +478,14 @@ function shipMassStatus (ship)
         end
         addText(statusLayer, font, text[i], startx, starty + (l * 18))
         if i%2 == 0 then
-            startx = startx + (((rx/6)*4)/3)
+            startx = startx+lastsize+20
         end
     end
+
     local pgBarStartX = (rx/6) + 5
     local pgBarStartY = (ry/6) * 5.25
     local pgBarEnd = ((rx/6) * 4) - 5
-    local volpct = contVol / shipMaxVol
-    local masspct = currMass / maxMass
+    local volpct = hVol / maxVol
     local r, g, b = 0, 1, 0
     if volpct > 0.75 then
         r, g, b = 1, 0, 0
@@ -482,20 +500,24 @@ function shipMassStatus (ship)
     addBox(statusLayer, pgBarStartX, pgBarStartY, pgBarEnd * volpct , 10)
     setNextFillColor(statusLayer, r, g, b, 1)
     addText(statusLayer, font, "Volume", pgBarStartX - 100, pgBarStartY + 9)
-    r, g, b = 0, 1, 0
-    if masspct > 0.75 then
-        r, g, b = 1, 0, 0
-    elseif masspct > 0.5 then
-        r, g, b = 1, 1, 0
+    if core["name"] == "ship" and mMass ~= nil then
+        local masspct = cMass / mMass
+        r, g, b = 0, 1, 0
+        if masspct > 0.75 then
+            r, g, b = 1, 0, 0
+        elseif masspct > 0.5 then
+            r, g, b = 1, 1, 0
+        end
+        setNextStrokeWidth(statusLayer, 1)
+        setNextStrokeColor(statusLayer, r, g, b, 1)
+        setNextFillColor(statusLayer, 0, 0, 0, 0)
+        addBox(statusLayer, pgBarStartX, pgBarStartY+20, pgBarEnd , 10)
+        setNextFillColor(statusLayer, r, g, b, 1)
+        addBox(statusLayer, pgBarStartX, pgBarStartY+20, pgBarEnd * masspct , 10)
+        setNextFillColor(statusLayer, r, g, b, 1)
+        addText(statusLayer, font, "Mass", pgBarStartX - 100, pgBarStartY + 29)
     end
-    setNextStrokeWidth(statusLayer, 1)
-    setNextStrokeColor(statusLayer, r, g, b, 1)
-    setNextFillColor(statusLayer, 0, 0, 0, 0)
-    addBox(statusLayer, pgBarStartX, pgBarStartY+20, pgBarEnd , 10)
-    setNextFillColor(statusLayer, r, g, b, 1)
-    addBox(statusLayer, pgBarStartX, pgBarStartY+20, pgBarEnd * masspct , 10)
-    setNextFillColor(statusLayer, r, g, b, 1)
-    addText(statusLayer, font, "Mass", pgBarStartX - 100, pgBarStartY + 29)
+    
 end
 
 function waitAnim ()
@@ -527,34 +549,84 @@ function closedContainer (error)
     drawBackgroundImage("noT")
     local font = getFont('Play-Bold', 32)
     local text = ""
+    local r, g, b = 1, 1, 1
     if error == "full" then
-        logMessage("full")
+        --logMessage("full")
         text = "Container is Full"
+        r, g, b = 1, 0, 0
     elseif error == "noData" then
-        logMessage("noData")
-        text = "Waiting for data..."
+        --logMessage("noData")
+        text = "No Data Found."
+        r, g, b = 1, 0, 0
+    elseif error == "polling" then
+        --logMessage("polling")
+        text = "Starting Up. Standby."
+        r, g, b = 0, 1, 1
+        waitAnim()
+    elseif error == "startup" then
+        --logMessage("startup")
+        text = "Starting Up. Standby."
         waitAnim()
     end
     local sx, sy = getTextBounds(font, text)
     sx, sy = sx + 32, sy + 16
     local x0 = rx/2 - sx/2
     local y0 = ry/2 - sy/2
-    local x1 = x0 + sx
-    local y1 = y0 + sy
-    setNextFillColor(bglayer, 1, 0, 0, 1)
-    addText(bglayer, font, text, x0, y0) 
+    setNextFillColor(bglayer, r, g, b, 1)
+    addText(bglayer, font, text, x0, y0)
+end
+
+function pollData ()
+    if not Waiting then
+        local input = getInput()
+        local jData = json.decode(input)
+        logMessage("input Received: "..rslib.toString(input).." Type: "..type(input))
+        logMessage("Json Received: "..rslib.toString(jData).." Type: "..type(jData))
+        if jData == "READY" then
+            sendAck()
+            Waiting = true
+        elseif jData == "SYN" then
+                setOutput("ACKSYN")
+                logMessage("ACKSYN sent.")
+                Waiting = true
+        else
+            if type(jData) == "string" or type(jData) == "table" then
+                processData(jData)
+            end
+            sendAck()
+            Waiting = true
+        end
+    else
+        logMessage("Waiting...")
+        if not LastTime then
+            LastTime = getDeltaTime()
+        end
+        local newTime = getDeltaTime()
+        LastTime = LastTime+newTime
+        if LastTime >= pollRate*2 then
+            Waiting = false
+            LastTime = false
+        end
+    end
 end
 
 function processData (data)
+    logMessage("Processing: "..rslib.toString(data))
     if data == "DONE" then
         Items = {}
         Items = NextItems
         NextItems = {}
-        Polling = false
+        DataReceived = true
     elseif type(data) == "table" then
         if data["name"] == "ship" then
             Ship = {}
             Ship = data
+        elseif data["name"] == "land" then
+            Land = {}
+            Land = data
+        elseif data["name"] == "space" then
+            Space = {}
+            Space = data
         else
             if data["id"] then
                 if not NextItems then
@@ -563,13 +635,11 @@ function processData (data)
                 local index = data["id"]
                 data["image"] = string.gsub(data["name"], "%s+", "")
                 data["image"] = string.gsub(data["image"], "-", "")
-                table.insert(NextItems, index, data)
+                table.insert(NextItems, index, data)    
             end
         end
     end
-    sendAck()
     data = nil -- Garbage collection
-    DataStop = true
 end
 
 function sendAck ()
@@ -578,57 +648,52 @@ function sendAck ()
 end
 
 function main ()
+    local core = {}
+    if Ship then core = Ship end
+    if Land then core = Land end
+    if Space then core = Space end
     drawBackground()
     drawTitle()
     if itemDisplay then
         drawBackgroundImage("noT")
-        displayItem(itemDisplay, Ship)
+        displayItem(itemDisplay, core)
     else
         drawBackgroundImage("allC")
         itemPages(Items)
     end
-    shipMassStatus(Ship)
+    massStatus(core)
     drawCursor()
 end
 
-local jData = json.decode(getInput(), 1, nil) or {}
-
-if not Init then
+if not Startup then
+    if not Init then
+        logMessage(" -- --- --")
+    end
     if not LastTime then
         LastTime = getDeltaTime()
     end
     LastTime = LastTime+getDeltaTime()
-     if LastTime >= 1 then
-         Init = true
-     end
+    if LastTime >= 3 then
+        Startup = true
+        LastTime = false
+        DataReceived = false
+        setOutput("START")
+        logMessage("Startup Complete.")
+    end
+    closedContainer("startup")
 end
 
-if jData ~= {} and Init then
-    if Polling then
-        if not DataStop then
-            processData(jData)
-            logMessage(prettyStr(jData))
-        else
-            logMessage("Data Stop")
-            if not LastTime then
-                LastTime = getDeltaTime()
-            end
-            local newTime = getDeltaTime()
-            LastTime = LastTime+newTime
-            if LastTime >= pollRate then
-                DataStop = false
-                LastTime = false
-            end
-        end
+if Startup then
+    if not DataReceived then
+        pollData()
+        closedContainer("polling")
     else
+        if Items and (Ship or Land or Space) then
+            main()
+        else
+            closedContainer("noData")
+        end
         refreshButton()
     end
 end
-if Items and Ship then
-    main()
-else
-    Polling = true
-    closedContainer("noData")
-end
-
 requestAnimationFrame(5)

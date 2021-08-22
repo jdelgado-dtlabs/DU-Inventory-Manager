@@ -1572,8 +1572,8 @@ local function PlanetRef()
 end
 
 PlanetaryReference = PlanetRef()
-GalaxyRef = PlanetaryReference(Atlas())
-Helios = GalaxyRef[0]
+galaxyReference = PlanetaryReference(Atlas())
+Helios = galaxyReference[0]
 
 -- find my hubs
 local hublist = { hub1, hub2, hub3, hub4, hub5, hub6, hub7, hub8 }
@@ -1747,7 +1747,7 @@ function getShip ()
     t["hvol"] = round2(hV, 2)
     t["g"] = round2(g, 2)
     t["maxth"] = round2(mt, 2)
-    t["pl"] = planet.name
+    t["pl"] = planet.name or "Helios"
     if DEBUG then system.print("Ship: "..rslib.toString(t)) end
     return t
 end
@@ -1760,7 +1760,7 @@ function getLand ()
     t["hmass"] = round2(hM, 2)
     t["hmaxvol"] = round2(MaxVolume, 2)
     t["hvol"] = round2(hV, 2)
-    t["pl"] = planet.name
+    t["pl"] = planet.name or "Helios"
     if DEBUG then system.print("Land: "..rslib.toString(t)) end
     return t
 end
@@ -1777,7 +1777,7 @@ function getSpace ()
     t["hmaxvol"] = round2(MaxVolume, 2)
     t["hvol"] = round2(hV, 2)
     t["g"] = round2(g, 5)
-    t["pl"] = planet.name
+    t["pl"] = planet.name or "Helios"
     if DEBUG then system.print("Space: "..rslib.toString(t)) end
     return t
 end

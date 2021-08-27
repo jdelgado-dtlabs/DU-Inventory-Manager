@@ -1681,13 +1681,14 @@ function createMessageList ()
     local index = 1
     for i=(maxItems-11),maxItems do
         local tt = ItemsList[i]
-        tt["id"] = index
-        table.insert(t, tt)
+        if tt ~= nil then
+            tt["id"] = index
+            table.insert(t, tt)
+        end
         index = index+1
     end
     table.insert(t, core)
     table.insert(t, "DONE")
-
     return t
 end
 

@@ -5,14 +5,15 @@ This project leverages the recently released screen LUA APIs to provide an inter
 
 With this system, you can set up a visual representation of your container(s) on your constructs. Designed to connect up to 8 hubs.
 
-
+Currently the system is limited to two (2) Containers or hubs per board.
+*TODO: decrease memory footprint while processing inventory*
 
 ## How to Setup
 1. Place your programming board and screen at a location of your choosing. It must be on the same core as the containers or hubs.
 2. Connect to the programming board in the following order:
     1. Screen
     2. Core
-    3. Container or Hub (up to 8)
+    3. Container or Hub (up to 2)
 3. Load the programming board by going to [pb_conf.json](conf/pb_conf.json) and copying the code to your clipboard.
 4. In-game, right click the programming board, click Advanced, and select Paste lua from Clipboard.
 5. Load the screen next by copying the code in [screen1.lua](src/screen1.lua).

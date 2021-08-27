@@ -1575,8 +1575,8 @@ PlanetaryReference = PlanetRef()
 galaxyReference = PlanetaryReference(Atlas())
 Helios = galaxyReference[0]
 
--- find my hubs
-local hublist = { hub1, hub2, hub3, hub4, hub5, hub6, hub7, hub8 }
+-- find my hubs -- Hard limit of 2 hubs. You can connect more, but they'll be ignored.
+local hublist = { hub1, hub2 } --, hub3, hub4, hub5, hub6, hub7, hub8 }
 Hubs = {}
 ItemsList = {}
 ItemsPage = 1
@@ -1736,8 +1736,6 @@ function waitForAck ()
         if ack == "RESET" or ack == "PREV" or ack == "NEXT" then
             DataStart = true
             MsgList = false
-            screen1.clearScriptOutput()
-            ack = nil
             if ack == "PREV" then
                 if ItemsPage == 1 then
                     ItemsPage = TotalPages
@@ -1751,6 +1749,8 @@ function waitForAck ()
                     ItemsPage = ItemsPage + 1
                 end
             end
+            screen1.clearScriptOutput()
+            ack = nil
         end
     end
 end

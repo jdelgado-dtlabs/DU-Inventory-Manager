@@ -16,24 +16,24 @@ if timerId == "storage" then
         end
     else
         unit.stopTimer("storage")
-        unit.setTimer("ingestion",60)
+        unit.setTimer("ingestion",30)
     end
 elseif timerId == "ingestion" then
-    if not ItemsListInProcess then
-        unit.stopTimer("consumer")
-        sendOutput("POLLING")
-        ItemsListInProcess = true
-        ItemsList = sortItems(getItems(Hubs))
-        TotalPages = round2((#ItemsList/12),0)
-        ItemsListInProcess = false
-        unit.setTimer("consumer",0.0666667)
-    end
+    unit.stopTimer("consumer")
+    sendOutput("POLLING")
+    if DEBUG then system.print("Sent Polling.") end
+    ItemsList = sortItems(getItems(Hubs))
+    if DEBUG then system.print("ItemsList populated.") end
+    TotalPages = round2((#ItemsList/12),0)
+    if DEBUG then system.print("Total Pages: "..tostring(TotalPages)) end
+    unit.setTimer("consumer",0.066667)
 elseif timerId == "consumer" then
     if not DataStart then
         waitForAck()
     else
         if not MsgList then
             MsgList = createMessageList()
+            if DEBUG then system.print("MsgList populated.") end
         else
             if not DataReady then
                 DataReady = true

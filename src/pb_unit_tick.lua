@@ -17,16 +17,13 @@ if timerId == "storage" then
     else
         unit.stopTimer("storage")
         unit.setTimer("ingestion",30)
+        ingestion()
+        unit.setTimer("consumer",0.06666667)
     end
 elseif timerId == "ingestion" then
     unit.stopTimer("consumer")
-    sendOutput("POLLING")
-    if DEBUG then system.print("Sent Polling.") end
-    ItemsList = sortItems(getItems(Hubs))
-    if DEBUG then system.print("ItemsList populated.") end
-    TotalPages = round2((#ItemsList/12),0)
-    if DEBUG then system.print("Total Pages: "..tostring(TotalPages)) end
-    unit.setTimer("consumer",0.066667)
+    ingestion()
+    unit.setTimer("consumer",0.06666667)
 elseif timerId == "consumer" then
     if not DataStart then
         waitForAck()

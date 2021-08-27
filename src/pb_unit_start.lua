@@ -3,7 +3,7 @@ json = require('dkjson')
 rslib = require('rslib')
 
 -- Don't turn this on unless you know that your chat will get spammed.
-DEBUG = true
+DEBUG = false --export:
 
 -- global variables
 MaxVolume = 1150000 --export: (Default 1150000) Put the maximum volume of your containers in L. 1 kL = 1000 L
@@ -1812,6 +1812,16 @@ function getSpace ()
     t["pl"] = planet.name or "Helios"
     if DEBUG then system.print("Space: "..rslib.toString(t)) end
     return t
+end
+
+function ingestion ()
+    sendOutput("POLLING")
+    if DEBUG then system.print("Sent Polling.") end
+    ItemsList = sortItems(getItems(Hubs))
+    if DEBUG then system.print("ItemsList populated.") end
+    TotalPages = round2((#ItemsList/12),0)
+    if DEBUG then system.print("Total Pages: "..tostring(TotalPages)) end
+    unit.setTimer("consumer",0.06666667)
 end
 
 -- Initializations

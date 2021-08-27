@@ -1421,9 +1421,9 @@ local function PlanetRef()
 
     function PlanetarySystem:sizeCalculator(body)
         return 1.05*body.radius
-     end
+    end
      
-     function PlanetarySystem:castIntersections(origin, direction, sizeCalculator, bodyIds, collection, sorted)
+    function PlanetarySystem:castIntersections(origin, direction, sizeCalculator, bodyIds, collection, sorted)
         local candidates = {}
         local selfie = collection or self
         -- Since we don't use bodyIds anywhere, got rid of them
@@ -1578,6 +1578,8 @@ Helios = galaxyReference[0]
 -- find my hubs
 local hublist = { hub1, hub2, hub3, hub4, hub5, hub6, hub7, hub8 }
 Hubs = {}
+ItemsList = {}
+ItemsPage = 1
 
 for i,v in ipairs(hublist) do
     if hublist[i] then
@@ -1613,58 +1615,79 @@ function getKeysSortedByValue(tbl, sortFunction)
     return keys
 end
 
-function getItems (hub)
-    local c = json.decode(hub.getItemsList())
-    local out = {}
-    if DEBUG then system.print("container: "..rslib.toString(c)) end
-    for i, v in ipairs(c) do
-        local item = c[i]
-        local t = {}
-        t["id"] = i
-        t["name"] = item["name"]
-        t["qty"] = item["quantity"]
-        t["unitv"] = round2(item["unitVolume"], 2)
-        t["unitm"] = round2(item["unitMass"], 2)
-        table.insert(out,i,t)
-    end
-    return out
-end
-
-function createMessageList (items, core)
-    local t = {}
-    local unordered = {}
-    local sorting = {}
-    local sorted = {}
-    if DEBUG then system.print("Processed: "..rslib.toString(items)) end
-    table.insert(t,1,"START")
-    for h=1,#Hubs do
-        for i,_ in ipairs(items[h]) do
-            table.insert(unordered, items[h][i])
+function getItems (hubs)
+    if DEBUG then system.print("Retreiving items from hubs") end
+    local items = {}
+    local itemList = {}
+    for h, _ in ipairs(hubs) do
+        local c = json.decode(hubs[h]["hub"].getItemsList())
+        for i, _ in ipairs(c) do
+            local item = c[i]
+            local t = {}
+            if itemList[item["name"]] ~= nil then
+                local idx = itemList[item["name"]]
+                items[idx]["qty"] = items[idx]["qty"] + round2(item["quantity"], 2)
+            else
+                itemList[item["name"]] = #items+1
+                t["id"] = #items+1
+                t["name"] = item["name"]
+                t["qty"] = round2(item["quantity"], 2)
+                t["unitv"] = round2(item["unitVolume"], 2)
+                t["unitm"] = round2(item["unitMass"], 2)
+            table.insert(items,t)
+            end
         end
     end
-    for i,_ in ipairs(unordered) do
-        local qty = unordered[i]["qty"]
-        local unit = unordered[i]["unitv"]
+    return items
+end
+
+function sortItems (items)
+    if DEBUG then system.print("Sorting items from hubs") end
+    local sorting = {}
+    local sorted = {}
+    for i,_ in ipairs(items) do
+        local qty = items[i]["qty"]
+        local unit = 0
         if SortByMass then
-            unit = unordered[i]["unitm"]
+            unit = items[i]["unitm"]
+        else 
+            unit = items[i]["unitv"]
         end
         local calc = qty*unit
         table.insert(sorting, i, calc)
     end
     local sortedKeys = getKeysSortedByValue(sorting, function(a, b) return a > b end)
     sorting = nil
-    local sortedIndex = 1
     for _, key in ipairs(sortedKeys) do
-        local tt = unordered[key]
-        tt["id"] = sortedIndex
-        table.insert(sorted, sortedIndex, tt)
-        sortedIndex = sortedIndex+1
+        local tt = items[key]
+        tt["id"] = #sorted+1
+        table.insert(sorted, tt)
     end
-    for i,_ in ipairs(sorted) do
-        table.insert(t, sorted[i])
+    return sorted
+end
+
+function createMessageList ()
+    local t, core = {}, {}
+    if Ship then
+        core = getShip()
+    elseif Land then
+        core = getLand()
+    elseif Space then
+        core = getSpace()
+    end
+    if DEBUG then system.print("Processing messages") end
+    table.insert(t, "START")
+    local maxItems = ItemsPage*12
+    local index = 1
+    for i=(maxItems-11),maxItems do
+        local tt = ItemsList[i]
+        tt["id"] = index
+        table.insert(t, tt)
+        index = index+1
     end
     table.insert(t, core)
     table.insert(t, "DONE")
+
     return t
 end
 
@@ -1698,7 +1721,7 @@ function waitForAck ()
     local ack = screen1.getScriptOutput() or false
     if ack and ack ~= "" then
         if DEBUG then system.print(ack.." received.") end
-        if ack == "START" then
+        if ack == "START" or ack == "ACKSYN" then
             DataStart = true
             ACK = true
             screen1.clearScriptOutput()
@@ -1709,16 +1732,24 @@ function waitForAck ()
             screen1.clearScriptOutput()
             ack = nil
         end
-        if ack == "ACKSYN" then
+        if ack == "RESET" or ack == "PREV" or ack == "NEXT" then
             DataStart = true
-            ACK = true
-            screen1.clearScriptOutput()
-            ack = nil
-        end
-        if ack == "RESET" then
             MsgList = false
             screen1.clearScriptOutput()
             ack = nil
+            if ack == "PREV" then
+                if ItemsPage == 1 then
+                    ItemsPage = TotalPages
+                else
+                    ItemsPage = ItemsPage - 1
+                end
+            elseif ack == "NEXT" then
+                if ItemsPage == TotalPages then
+                    ItemsPage = 1
+                else
+                    ItemsPage = ItemsPage + 1
+                end
+            end
         end
     end
 end
@@ -1808,5 +1839,6 @@ else
     end
 
     -- Activate Timers
-    unit.setTimer("comms",0.0666667)
+    StorageTimeout = 5
+    unit.setTimer("storage",1)
 end

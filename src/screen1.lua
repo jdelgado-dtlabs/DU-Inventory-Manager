@@ -84,6 +84,8 @@ if not ImageLibrary then
         KergonX4Fuel = baseIcon.."/materialslib/Kergon.png",
         NitronFuel = baseIcon.."/materialslib/Nitron.png",
         TerritoryScanner = baseIcon.."/elementslib/territoryscanner.png",
+        DeepSpaceAsteroidTracker = baseElem.."/trackers/tracker-deep-space-asteroid_001_m/icons/env_tracker-deep-space-asteroid_001_m_icon.png",
+        Package = baseElem.."/packages/package_001/icons/env_package_001_icon.png",
         TerritoryUnit = baseURI.."/70186/dd5105d3-e139-4d4c-8472-a476dea5801d.png",
         IronScrap = baseElem.."/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
         AluminiumScrap = baseElem.."/scraps/scrap-t1_001/icons/scrap-t1_001_icon.png",
@@ -239,22 +241,16 @@ function pageButtons (pages)
         local y0 = ((ry/3)*2) - sy/2
         local x1 = x0 + sx
         local y1 = y0 + sy
-        local r, g, b = 0.3, 0.7, 1.0
+        local r, g, b = 0, 1, 1
         if cx >= x0 and cx <= x1 and cy >= y0 and cy <= y1 then
             r, g, b = 1.0, 0.0, 0.4
             if click then
                 if text[i] == "Previous" then
-                    if PageView == 1 then
-                        PageView = pages
-                    else
-                        PageView = PageView-1
-                    end
+                    DataReceived = false
+                    setOutput("PREV")
                 elseif text[i] == "Next" then
-                    if PageView == pages then
-                        PageView = 1
-                    else
-                        PageView = PageView+1
-                    end
+                    DataReceived = false
+                    setOutput("NEXT")
                 end
             end
         end
@@ -592,14 +588,16 @@ function pollData ()
         local jData = json.decode(input)
         logMessage("input Received: "..rslib.toString(input).." Type: "..type(input))
         logMessage("Json Received: "..rslib.toString(jData).." Type: "..type(jData))
-        if jData == "READY" then
+        if RefreshTime and jData == "POLLING" then
+            Startup = false
+        elseif jData == "READY" then
             sendAck("ACK")
             Waiting = true
         elseif jData == "SYN" then
                 sendAck("ACKSYN")
                 logMessage("ACKSYN sent.")
                 Waiting = true
-        else
+        elseif not jData == "POLLING" then
             if type(jData) == "string" or type(jData) == "table" then
                 if not processData(jData) then sendAck("RESET") end
             end
@@ -685,7 +683,7 @@ end
 
 if not Startup then
     if not Init then
-        logMessage(" -- --- --")
+        logMessage("-- --- --")
         closedContainer("startup")
         if not LastTime then
             LastTime = getDeltaTime()
@@ -727,7 +725,6 @@ if Startup then
             DataReceived = false
             setOutput("START")
             Waiting = true
-            logMessage("Startup Complete.")
         end
     end
 end

@@ -22,7 +22,7 @@ With this system, you can set up a visual representation of your container(s) on
 It is recommended to attach a trigger to turn on the board and the screen at the same time. This can be achieved with a simple Manual Switch attached to a relay that is attached to both the programming board and the screen. Turning on the switch turns on both. You can replace the switch with any trigger device.
 
 ## Customizing the screen
-Edit the begining of the [screen1.lua](src/screen1.lua) file before you paste it or within the in-game editor and put our title and background text:
+Edit the begining of the [screen1.lua](src/screen1.lua) file before you paste it or within the in-game editor and put your title and background text:
 
 ```lua
 local title = "Inventory" -- export: Name your display.

@@ -1,16 +1,15 @@
-# DU-Ship-Inventory
-## Dual Universe Ship Inventory Manager
+# DU-Inventory-Manager
+## Dual Universe Inventory Manager
 
 This project leverages the recently released screen LUA APIs to provide an interface with the programming board.
 
-With this system, you can set up a visual representation of your container on your ship. Designed to use a hub.
+With this system, you can set up a visual representation of your container(s) on your constructs. Designed to connect up to 8 hubs.
 
 Edit the begining of the `screen1.lua` file and put your titles and options.
 
 ```lua
 local title = "Inventory" -- export: Name your display.
 local bgtext = "Medium Heavy Cargo Ship" -- export: Background text of your choice.
-local bgPlanetImg = "assets.prod.novaquark.com/20368/954f3adb-3369-4ea9-854d-a14606334152.png" -- export: (Default: Alioth URL)
 ...
 ```
 Do not edit any other options or you will mess with the system's timings.

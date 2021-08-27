@@ -583,12 +583,6 @@ function pollData ()
                 Waiting = true
         elseif jData ~= "POLLING" then
             if type(jData) == "string" or type(jData) == "table" then
-                local font = getFont("Play-Bold", 12)
-                local text = "Refresh in progress..."
-                local sx, sy = getTextBounds(font, text)
-                local x0 = rx-sx-10
-                local y0 = ry-sy-10
-                addText(bglayer, font, text, x0, y0)
                 if not processData(jData) then sendAck("RESET") end
             end
             sendAck("ACK")
@@ -607,6 +601,12 @@ function pollData ()
             LastTime = false
         end
     end
+    local font = getFont("Play-Bold", 12)
+    local text = "Refresh in progress..."
+    local sx, sy = getTextBounds(font, text)
+    local x0 = rx-sx-10
+    local y0 = ry-sy-10
+    addText(bglayer, font, text, x0, y0)
 end
 
 function processData (data)

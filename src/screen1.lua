@@ -585,16 +585,18 @@ function pollData ()
             Startup = false
         elseif jData == "READY" then
             sendAck("ACK")
+            logMessage("ACK sent.")
             Waiting = true
         elseif jData == "SYN" then
                 sendAck("ACKSYN")
                 logMessage("ACKSYN sent.")
                 Waiting = true
-        elseif not jData == "POLLING" then
+        elseif jData ~= "POLLING" then
             if type(jData) == "string" or type(jData) == "table" then
                 if not processData(jData) then sendAck("RESET") end
             end
             sendAck("ACK")
+            logMessage("ACK sent.")
             Waiting = true
         end
     else

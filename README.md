@@ -3,10 +3,35 @@
 
 This project leverages the recently released screen LUA APIs to provide an interface with the programming board.
 
+![Welcome](src/screens/land/1.png)
+
 With this system, you can set up a visual representation of your container(s) on your constructs. Designed to connect up to 8 hubs.
 
+![Starting up](src/screens/land/2.png)
+
 Currently the system is limited to two (2) Containers or hubs per board.
+
 *TODO: decrease memory footprint while processing inventory*
+
+For land based constructs (Static Core), only the current volume and maximum volume is displayed.
+
+![Items](src/screens/land/3.png)!![ItemswithName](src/screens/land/5.png)![Item](src/screens/land/4.png)
+
+For ship based constructs (Dynamic Core), the Mass and the thrust are calculated according to your ships data via lua.
+
+![Items](src/screens/ship/1.png)!
+
+![Items with names](src/screens/ship/2.png)!
+
+## Things to note about usage
+
+![Refresh](src/screens/refresh.png)
+
+When you see this on the screen, the `Previous` and `Next` buttons will be for the most part ignored. If you click on these buttons and nothing happens, wait until this text is not on the screen and trigger the page change.
+
+![NoIcon](src/screens/noicon.png)
+
+If you see this, don't panic. The Image Library is incomplete and is being worked on to add more items on the list. As more time passes, the amount of these icons should decrease significantly. Clicking on the icon will take you to the item page.
 
 ## How to Setup
 1. Place your programming board and screen at a location of your choosing. It must be on the same core as the containers or hubs.
@@ -37,9 +62,14 @@ Do not edit any other options or you will mess with the system's timings.
 
 Right click the programming board, click Advanced, and select Edit Lua Parameters. You will see the following options:
 
+![Parameters](src/screens/params.png)
+
+
+![Parameters](src/screens/params2.png)
 
 |Parameter|Value|Description|
 |---|---|---|
+|DEBUG|false|(Default: false) Gives you details to troubleshoot. Turn on at your own risk.|
 |MaxVolume|1150000|(Default: 1150000) Put the total maximum volume of your containers in L. 1 kL = 1000 L|
 |SortByMass|false|(Default: false) Sorts by Volume or Mass.|
 

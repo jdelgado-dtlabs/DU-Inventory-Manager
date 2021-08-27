@@ -235,7 +235,7 @@ function noIcon (startx, starty, square)
     addText(itemLayer, font, "Available", startx + (square/2) - (sx/2), starty + square - (sy/2))
 end
 
-function pageButtons (pages)
+function pageButtons ()
     local text = { "Previous", "Next" }
     for i,v in ipairs(text) do
         local font = getFont('Play-Bold', 24)
@@ -270,7 +270,6 @@ function pageButtons (pages)
 end
 
 function itemPages (items)
-
     local starty = ry/6
     local square = (ry/6)-5
     local padding = 5
@@ -279,18 +278,9 @@ function itemPages (items)
     end
     local column = 4
     local row = 3
-    local pages = 1
     local indexStart = 1
-    if (column*row) < #items then
-        pages = math.ceil(#items/(column*row))
-    end
-    if pages > 1 then
-        indexStart = (PageView-1)*(column*row)+1
-        itemBox(items, indexStart, column, row, starty, square, padding)
-        pageButtons(pages)
-    else
-        itemBox(items, indexStart, column, row, starty, square, padding)
-    end
+    itemBox(items, indexStart, column, row, starty, square, padding)
+    pageButtons()
 end
 
 function itemBox(items, indexStart, column, row, starty, square, padding)
@@ -583,7 +573,7 @@ function pollData ()
         logMessage("Json Received: "..rslib.toString(jData).." Type: "..type(jData))
         if RefreshTime and jData == "POLLING" then
             Startup = false
-        elseif jData == "READY" then
+        elseif jData == "READY" or jData == "POLLING" then
             sendAck("ACK")
             logMessage("ACK sent.")
             Waiting = true
@@ -593,6 +583,12 @@ function pollData ()
                 Waiting = true
         elseif jData ~= "POLLING" then
             if type(jData) == "string" or type(jData) == "table" then
+                local font = getFont("Play-Bold", 12)
+                local text = "Refresh in progress..."
+                local sx, sy = getTextBounds(font, text)
+                local x0 = rx-sx-10
+                local y0 = ry-sy-10
+                addText(bglayer, font, text, x0, y0)
                 if not processData(jData) then sendAck("RESET") end
             end
             sendAck("ACK")

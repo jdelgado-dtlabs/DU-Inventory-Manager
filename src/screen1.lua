@@ -10,6 +10,7 @@ fontCache = {} -- on refresh, the fontcache is invalid. This resets it.
 local bglayer = createLayer()
 local statusLayer = createLayer()
 local itemLayer = createLayer()
+local infoLayer = createLayer()
 local curlayer = createLayer()
 
 local cx, cy = getCursor()
@@ -289,7 +290,8 @@ function itemBox(items, indexStart, column, row, starty, square, padding)
         for c=1,column do
             if index <= #items then
                 local item = items[index]
-                local name = item["image"]
+                local name = item["name"]
+                local imgName = item["image"]
                 local boxSize = square+padding
                 local centeredx = rx/2-(boxSize*(column/2))
                 local colStart = centeredx-padding+((c-1)*boxSize)
@@ -301,13 +303,26 @@ function itemBox(items, indexStart, column, row, starty, square, padding)
                         itemDisplay = item
                         return
                     end
+                    local font = getFont('Play-Bold', 24)
+                    local sx, sy = getTextBounds(font, name)
+                    sx, sy = sx + 24, sy + 12
+                    local x0 = rx/2 - sx/2
+                    local y0 = ((ry/3)*2) - sy/2
+                    setNextShadow(infoLayer, 64, r, g, b, 0.3)
+                    setNextFillColor(infoLayer, 0.1, 0.1, 0.1, 1)
+                    setNextStrokeColor(infoLayer, r, g, b, 1)
+                    setNextStrokeWidth(infoLayer, 2)
+                    addBoxRounded(infoLayer, x0, y0, sx, sy, 4)
+                    setNextFillColor(infoLayer, 1, 1, 1, 1)
+                    setNextTextAlign(infoLayer, AlignH_Center, AlignV_Middle)
+                    addText(infoLayer, font, name, x0+(sx/2), y0+(sy/2))
                 end
                 setNextStrokeWidth(itemLayer, 1)
                 setNextStrokeColor(itemLayer, r, g, b, 1)
                 setNextFillColor(itemLayer, 0, 0, 0, 0)
                 addBox(itemLayer, colStart, rowStart, square, square)
-                if ImageLibrary[name] ~= "none" then
-                    local image = loadImage(ImageLibrary[name])
+                if ImageLibrary[imgName] ~= "none" then
+                    local image = loadImage(ImageLibrary[imgName])
                     if isImageLoaded(image) then
                         addImage(itemLayer, image, colStart, rowStart, square, square)
                     end

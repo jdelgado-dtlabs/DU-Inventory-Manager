@@ -1,1 +1,3 @@
-unit.stopTimer("check",1)
+unit.stopTimer("storage")
+unit.stopTimer("ingestion")
+unit.stopTimer("consumer")

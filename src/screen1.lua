@@ -169,35 +169,39 @@ function drawBackground ()
 end
 
 function drawBackgroundImage (cols, bgImage)
-    if cols and cols ~= "noC" then
-        local imageName = ImageLibrary[bgImage]
-        if imageName then
-            local cenImage = loadImage(imageName)
-            if isImageLoaded(cenImage) then
-                setNextFillColor(bglayer, 1, 1, 1, .33)
-                addImage(bglayer, cenImage, (rx/2) - (ry/6), ry/3, ry/3, ry/3)
+    if cols then
+        if cols ~= "noC" then
+            if bgImage ~= "none" then
+                local imageName = ImageLibrary[bgImage]
+                if imageName then
+                    local cenImage = loadImage(imageName)
+                    if isImageLoaded(cenImage) then
+                        setNextFillColor(bglayer, 1, 1, 1, .33)
+                        addImage(bglayer, cenImage, (rx/2) - (ry/6), ry/3, ry/3, ry/3)
+                    end
+                end
             end
         end
-    end
-    if cols and cols ~= "noSCs" then
-        local colImage = loadImage(ImageLibrary["TerritoryScanner"])
-        if isImageLoaded(colImage) then
-            setNextFillColor(bglayer, 1, 1, 1, .33)
-            addImage(bglayer, colImage, -5, ry/3, ry/3, ry/3)
-            setNextFillColor(bglayer, 1, 1, 1, .33)
-            addImage(bglayer, colImage, (((rx/6)*5)), ry/3, ry/3, ry/3)
+        if cols ~= "noSCs" then
+            local colImage = loadImage(ImageLibrary["TerritoryScanner"])
+            if isImageLoaded(colImage) then
+                setNextFillColor(bglayer, 1, 1, 1, .33)
+                addImage(bglayer, colImage, -5, ry/3, ry/3, ry/3)
+                setNextFillColor(bglayer, 1, 1, 1, .33)
+                addImage(bglayer, colImage, (((rx/6)*5)), ry/3, ry/3, ry/3)
+            end
         end
-    end
-    if cols and cols ~= "noT" then
-        local font = getFont('Play-Bold', 32)
-        local sx, sy = getTextBounds(font, bgtext)
-        sx, sy = sx + 32, sy + 16
-        local x0 = rx/2 - sx/2
-        local y0 = ry/2 - sy/2
-        local x1 = x0 + sx
-        local y1 = y0 + sy
-        setNextFillColor(bglayer, 1, 1, 1, 0.33)
-        addText(bglayer, font, bgtext, x0, y0)
+        if cols ~= "noT" then
+            local font = getFont('Play-Bold', 32)
+            local sx, sy = getTextBounds(font, bgtext)
+            sx, sy = sx + 32, sy + 16
+            local x0 = rx/2 - sx/2
+            local y0 = ry/2 - sy/2
+            local x1 = x0 + sx
+            local y1 = y0 + sy
+            setNextFillColor(bglayer, 1, 1, 1, 0.33)
+            addText(bglayer, font, bgtext, x0, y0)
+        end
     end
 end
 
@@ -419,7 +423,6 @@ function displayItem (item, core)
         setNextFillColor(itemLayer, r, g, b, 1)
         addBox(itemLayer, pgBarStartX, pgBarStartY+20+ 18, pgBarEnd * masspct , 10)
     end
-    
     addText(itemLayer, subtitle, "Current Qty: "..string.format("%.2f", qty), pgBarStartX, pgBarStartY+32+18+18)
     addText(itemLayer, subtitle, "Current Volume: "..unitCollapse(itemVol, "L"), pgBarStartX, pgBarStartY+32+18+18+18)
     addText(itemLayer, subtitle, "Current Mass: "..unitCollapse(itemMass, "kg"), pgBarStartX, pgBarStartY+32+36+18+18)
@@ -544,41 +547,31 @@ function waitAnim ()
     end
 end
 
-function closedContainer (error)
+function splashScreen (message)
     drawBackground()
-    drawTitle()
-    drawBackgroundImage("noT", "Alioth")
+    drawBackgroundImage("noT", "none")
     local font = getFont('Play-Bold', 32)
     local text = ""
     local r, g, b = 1, 1, 1
-    if error == "full" then
-        --logMessage("full")
-        text = "Container is Full"
-        r, g, b = 1, 0, 0
-    elseif error == "noData" then
-        --logMessage("noData")
-        text = "No Data Found."
-        r, g, b = 1, 0, 0
-    elseif error == "polling" then
-        --logMessage("polling")
+    if message == "polling" then
+        drawTitle()
         text = "Requesting data. Standby."
         r, g, b = 0, 1, 1
-        waitAnim()
-    elseif error == "startup" then
-        --logMessage("startup")
-        text = "Starting Up. Standby."
-        waitAnim()
+    elseif message == "startup" then
+        text = "Welcome to "..title
     end
-    local sx, sy = getTextBounds(font, text)
-    sx, sy = sx + 32, sy + 16
-    local x0 = rx/2 - sx/2
-    local y0 = ry/2 - sy/2
-    setNextFillColor(bglayer, r, g, b, 1)
-    addText(bglayer, font, text, x0, y0)
+    waitAnim()
+    if text then
+        local sx, sy = getTextBounds(font, text)
+        sx, sy = sx + 32, sy + 16
+        local x0 = rx/2 - sx/2
+        local y0 = ry/2 - sy/2
+        setNextFillColor(bglayer, r, g, b, 1)
+        addText(bglayer, font, text, x0, y0)    
+    end
 end
 
 function pollData ()
-    
     if not Waiting then
         local function sendAck (ack)
             setOutput(ack)
@@ -684,7 +677,7 @@ end
 if not Startup then
     if not Init then
         logMessage("-- --- --")
-        closedContainer("startup")
+        splashScreen("startup")
         if not LastTime then
             LastTime = getDeltaTime()
         end
@@ -699,7 +692,7 @@ if not Startup then
     else
         if not Items and not (Ship or Land or Space) then
             pollData()
-            closedContainer("polling")
+            splashScreen("polling")
         else
             Startup = true
         end
@@ -709,7 +702,7 @@ end
 
 if Startup then
     if not Items and not (Ship or Land or Space) then
-        closedContainer("noData")
+        splashScreen("polling")
     else
         main()
     end
